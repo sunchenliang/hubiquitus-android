@@ -25,6 +25,9 @@
 
 package org.hubiquitus.hapi.transport;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import org.hubiquitus.hapi.hStructures.ConnectionError;
 import org.hubiquitus.hapi.hStructures.ConnectionStatus;
 import org.hubiquitus.hapi.util.ErrorMsg;
@@ -48,22 +51,29 @@ public class HTransportManager {
 	private ConnectionStatus connStatus = ConnectionStatus.DISCONNECTED;
 	private boolean hasConnectivity = true;
 	private boolean shouldConnect = false;
+	private boolean isThreadEnabled = false;
+	private Thread tryToConnectDisconnectThread = new Thread(new MyRunnable());
+	private Timer reConnectTimer;
 	
 	class TransportManagerDelegate implements HTransportDelegate{
 
 		@Override
-		public void onStatus(ConnectionStatus status, ConnectionError error,
-				String errorMsg) {
+		public void onStatus(ConnectionStatus status, ConnectionError error, String errorMsg) {
 			connStatus = status;
-			if(error == ConnectionError.TECH_ERROR){//when tech error issues, reconnect.
-				if(callback != null)
+			if (error == ConnectionError.TECH_ERROR) {// when tech error issues, reconnect.
+				if (callback != null)
 					callback.onStatus(status, error, errorMsg + ". " + ErrorMsg.reconnIn5s);
-					try {
-						Thread.sleep(5000);
-						tryToConnectDisconnect();
-					} catch (InterruptedException e) {
-						logger.error("Message : " + e);
+				reConnectTimer = new Timer();
+				reConnectTimer.schedule(new TimerTask() {
+
+					@Override
+					public void run() {
+						if (!isThreadEnabled) {
+							isThreadEnabled = true;
+							tryToConnectDisconnectThread.run();
+						}
 					}
+				}, 5000);
 			}else{
 				if(callback != null)
 					callback.onStatus(status, error, errorMsg);
@@ -83,7 +93,10 @@ public class HTransportManager {
 	public void connect(){
 		shouldConnect = true;
 		if(connStatus != ConnectionStatus.CONNECTED && connStatus != ConnectionStatus.CONNECTING){
-			tryToConnectDisconnect();
+			if(!isThreadEnabled){
+				isThreadEnabled = true;
+				tryToConnectDisconnectThread.run();
+			}
 		}else if(connStatus == ConnectionStatus.CONNECTED){
 			callback.onStatus(connStatus, ConnectionError.ALREADY_CONNECTED, ErrorMsg.alreadyConn);
 		}else if(connStatus == ConnectionStatus.CONNECTING){
@@ -94,7 +107,11 @@ public class HTransportManager {
 	public void disconnect(){
 		shouldConnect = false;
 		if(connStatus != ConnectionStatus.DISCONNECTING && connStatus != ConnectionStatus.DISCONNECTED){
-			tryToConnectDisconnect();
+			if(!isThreadEnabled){
+				isThreadEnabled = true;
+				tryToConnectDisconnectThread.run();
+			}
+			//tryToConnectDisconnect();
 		}else if(connStatus == ConnectionStatus.DISCONNECTED){
 			callback.onStatus(connStatus, ConnectionError.NOT_CONNECTED, ErrorMsg.alreadyDisconn);
 		}else if(connStatus == ConnectionStatus.DISCONNECTING){
@@ -107,27 +124,33 @@ public class HTransportManager {
 	}
 	
 
-	private void tryToConnectDisconnect(){
-		logger.debug(">> tryToConnectDisconnect : shouldConnect = " + shouldConnect + " status = " + connStatus.toString());
-		
-		if (hasConnectivity){
-			if(shouldConnect && connStatus != ConnectionStatus.CONNECTED && connStatus != ConnectionStatus.CONNECTING){
-				logger.debug(">> tryToConnectDisconnect : transport.connect ...");
-				connStatus = ConnectionStatus.CONNECTING;
-				transport.connect(innerCallback, options);
-			}else if(!shouldConnect && connStatus != ConnectionStatus.DISCONNECTED && connStatus != ConnectionStatus.DISCONNECTING){
-				logger.debug(">> tryToConnectDisconnect : transport.disconnect ...");
-				connStatus = ConnectionStatus.DISCONNECTING;
-				transport.disconnect();
-			}else if(shouldConnect && connStatus == ConnectionStatus.CONNECTED){
-				logger.debug(">> tryToConnectDisconnect : already connected, I do nothing...");
-			}else if(!shouldConnect && connStatus == ConnectionStatus.DISCONNECTED){
-				logger.debug(">> tryToConnectDisconnect : already disconnected, I do nothing...");
+	
+	class MyRunnable implements Runnable{
+		//try to connect or disconnect
+		public void run() {
+			logger.debug(">> tryToConnectDisconnect : shouldConnect = " + shouldConnect + " status = " + connStatus.toString());
+			if (hasConnectivity){
+				if(shouldConnect && connStatus != ConnectionStatus.CONNECTED && connStatus != ConnectionStatus.CONNECTING){
+					logger.debug(">> tryToConnectDisconnect : transport.connect ...");
+					connStatus = ConnectionStatus.CONNECTING;
+					transport.connect(innerCallback, options);
+				}else if(!shouldConnect && connStatus != ConnectionStatus.DISCONNECTED && connStatus != ConnectionStatus.DISCONNECTING){
+					logger.debug(">> tryToConnectDisconnect : transport.disconnect ...");
+					connStatus = ConnectionStatus.DISCONNECTING;
+					transport.disconnect();
+				}else if(shouldConnect && connStatus == ConnectionStatus.CONNECTED){
+					logger.debug(">> tryToConnectDisconnect : already connected, I do nothing...");
+				}else if(!shouldConnect && connStatus == ConnectionStatus.DISCONNECTED){
+					logger.debug(">> tryToConnectDisconnect : already disconnected, I do nothing...");
+				}
+			}else{
+				innerCallback.onStatus(ConnectionStatus.DISCONNECTED, ConnectionError.NOT_CONNECTED, ErrorMsg.noConnectivity);
 			}
-		}else{
-			innerCallback.onStatus(ConnectionStatus.DISCONNECTED, ConnectionError.NOT_CONNECTED, ErrorMsg.noConnectivity);
+			isThreadEnabled = false;
 		}
 	}
+	
+	
 	
 	public HTransportDelegate getCallback() {
 		return callback;
@@ -153,8 +176,6 @@ public class HTransportManager {
 		this.options = options;
 	}
 
-
-
 	//listen to the connectivity of the device
 	private BroadcastReceiver mConnReceiver = new BroadcastReceiver() {
         @Override
@@ -166,7 +187,10 @@ public class HTransportManager {
             	innerCallback.onStatus(ConnectionStatus.DISCONNECTED, ConnectionError.NOT_CONNECTED, ErrorMsg.noConnectivity);
             }else{
             	hasConnectivity = true;
-            	tryToConnectDisconnect();
+            	if(!isThreadEnabled){
+            		isThreadEnabled = true;	
+            		tryToConnectDisconnectThread.run();
+    			}
             }
         }
     };

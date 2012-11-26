@@ -196,7 +196,10 @@ public class HTransportSocketio implements HTransport, IOCallback {
 					timeoutTimer.cancel();
 					timeoutTimer = null;
 				}
-				if(isFullJidSet)
+				if(status.getStatus() == ConnectionStatus.CONNECTED){
+					if(isFullJidSet)
+						updateStatus(status.getStatus(), status.getErrorCode(), status.getErrorMsg());
+				}else
 					updateStatus(status.getStatus(), status.getErrorCode(), status.getErrorMsg());
 			} catch (Exception e) {
 				logger.error("message: ", e);
@@ -278,6 +281,7 @@ public class HTransportSocketio implements HTransport, IOCallback {
 			timeoutTimer.cancel();
 			timeoutTimer = null;
 		}
+		isFullJidSet = false;
 		if(socketio != null)
 			socketio = null;
 		if (this.connectionStatus != ConnectionStatus.DISCONNECTED) {
@@ -290,6 +294,7 @@ public class HTransportSocketio implements HTransport, IOCallback {
 			timeoutTimer.cancel();
 			timeoutTimer = null;
 		}
+		isFullJidSet = false;
 		if (socketio != null && socketio.isConnected()) {
 			socketio.disconnect();
 		}

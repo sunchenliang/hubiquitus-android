@@ -169,6 +169,8 @@ public class SimpleClientActivity extends Activity  implements HStatusDelegate, 
 		channelIDText.setText("#test@localhost");
 		gatewaysEditText.setText("http://10.0.2.2:8080");
 		
+		
+		
 		MessageEditText.setText("");		
 	}
 	
@@ -183,7 +185,8 @@ public class SimpleClientActivity extends Activity  implements HStatusDelegate, 
 		}
 		@Override
 		public void authCb(String username, ConnectedCallback connectedCB) {
-			connectedCB.connect(login, password);
+			Log.i("authCb", "authentification callback called !!!");
+			connectedCB.connect(login, "password");
 		}
 		
 	}
@@ -312,13 +315,7 @@ public class SimpleClientActivity extends Activity  implements HStatusDelegate, 
 					message.setTimeout(timeout);
 				}
 				message.setPayload(payload);
-				try {
-					message = client.buildCommand("hnode@localhost", "hgetsubscriptions", null, null);
-				} catch (MissingAttrException e) {
-					e.printStackTrace();
-				}
-				message.setTimeout(3000);
-				client.send(message, new HMDelegate());
+				client.send(message, null);
 			}
 		};
 		sendButton.setOnClickListener(listener);
@@ -484,6 +481,9 @@ public class SimpleClientActivity extends Activity  implements HStatusDelegate, 
 		runOnUiThread(new Runnable() {
 
 			public void run() {
+				logger.info("--> status : " + status.getStatus());
+				logger.info("--> fulljid : " + client.getFullJid()); 
+				logger.info("--> resource : " + client.getResource());
 				connectionStatusLabel.setText(client.status().toString());
 				outputTextArea.append("Status : " + status.getStatus() + " error : " + status.getErrorCode() + "  errorMsg : " + status.getErrorMsg() + "\n\n");
 				Timer scrollTimer = new Timer();

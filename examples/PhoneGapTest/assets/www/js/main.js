@@ -220,6 +220,9 @@ function build_convstate(){
 }
 
 function onStatus(hStatus){
+    console.log('--> status : ' + hStatus.status);
+    console.log('--> fulljid : ' + window.plugins.hClient.fullJid);
+    console.log('--> resource : ' + window.plugins.hClient.resource);
     var status,error;
     switch(hStatus.status){
         case window.plugins.hClient.statuses.CONNECTED:
@@ -278,5 +281,5 @@ function onMessage(hMessage){
 function authCb(username, cb){
     // do something
     var password = '******'
-    cb(username, 'u1' );
+    cb(username, password );
 }
