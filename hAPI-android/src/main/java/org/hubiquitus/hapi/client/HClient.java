@@ -292,7 +292,7 @@ public class HClient {
 			throw new MissingAttrException("messageDelegate");
 		}
 		HMessage cmdMessage = buildCommand(actor, "hsubscribe", null, null);
-		cmdMessage.setTimeout(options.getTimeout());
+		cmdMessage.setTimeout(options.getMsgTimeout());
 		send(cmdMessage, messageDelegate);
 	}
 
@@ -310,7 +310,7 @@ public class HClient {
 			throw new MissingAttrException("messageDelegate");
 		}
 		HMessage cmdMessage = buildCommand(actor, "hunsubscribe", null, null);
-		cmdMessage.setTimeout(options.getTimeout());
+		cmdMessage.setTimeout(options.getMsgTimeout());
 		send(cmdMessage, messageDelegate);
 	}
 
@@ -337,7 +337,7 @@ public class HClient {
 			logger.error("message: ", e);
 		}
 		HMessage cmdMessage = buildCommand(actor, "hgetlastmessages", params, null);
-		cmdMessage.setTimeout(options.getTimeout());
+		cmdMessage.setTimeout(options.getMsgTimeout());
 		send(cmdMessage, messageDelegate);
 	}
 
@@ -364,7 +364,7 @@ public class HClient {
 			throw new MissingAttrException("messageDelegate");
 		}
 		HMessage cmdMessage = buildCommand(transportOptions.getHserverService(), "hgetsubscriptions", null, null);
-		cmdMessage.setTimeout(options.getTimeout());
+		cmdMessage.setTimeout(options.getMsgTimeout());
 		this.send(cmdMessage, messageDelegate);
 	}
 
@@ -402,7 +402,7 @@ public class HClient {
 		}
 
 		HMessage cmdMessage = this.buildCommand(actor, cmdName, params, null);
-		cmdMessage.setTimeout(options.getTimeout());
+		cmdMessage.setTimeout(options.getMsgTimeout());
 		this.send(cmdMessage, messageDelegate);
 	}
 
@@ -437,7 +437,7 @@ public class HClient {
 			logger.error("message: ", e);
 		}
 		HMessage cmdMessage = buildCommand(actor, "hgetthreads", params, null);
-		cmdMessage.setTimeout(options.getTimeout());
+		cmdMessage.setTimeout(options.getMsgTimeout());
 		this.send(cmdMessage, messageDelegate);
 	}
 
@@ -460,7 +460,7 @@ public class HClient {
 		}
 
 		HMessage cmdMessage = buildCommand(actor, "hRelevantMessages", null, null);
-		cmdMessage.setTimeout(options.getTimeout());
+		cmdMessage.setTimeout(options.getMsgTimeout());
 		this.send(cmdMessage, messageDelegate);
 	}
 	
@@ -476,7 +476,7 @@ public class HClient {
 			throw new MissingAttrException("messageDelegate");
 		}
 		HMessage cmdMessage = buildCommand("session", "hSetFilter", filter, null);
-		cmdMessage.setTimeout(options.getTimeout());
+		cmdMessage.setTimeout(options.getMsgTimeout());
 		this.send(cmdMessage, messageDelegate);
 	}
 
@@ -795,6 +795,7 @@ public class HClient {
 		this.transportOptions.setJid(jid);
 		this.transportOptions.setPassword(password);
 		this.transportOptions.setAuthCB(options.getAuthCB());
+		this.transportOptions.setTimeout(options.getTimeout());
 
 		// by default we user server host rather than publish host if defined
 

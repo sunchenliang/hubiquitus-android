@@ -42,6 +42,7 @@ public class HTransportOptions {
 	private String endpointPath = null;
 	private String hserver = "hnode";
 	private HAuthCallback authCB = null;
+	private int timeout = 0;
 	
 
 	public HTransportOptions() {
@@ -172,6 +173,14 @@ public class HTransportOptions {
 
 	public void setAuthCB(HAuthCallback authCB) {
 		this.authCB = authCB;
+	}
+	
+	public int getTimeout(){
+		return timeout;
+	}
+	
+	public void setTimeout(int timeout){
+		this.timeout = timeout;
 	}
 	
 	/* overrides */
